@@ -173,7 +173,7 @@ def add_new_post():
     return render_template("make-post.html", form=form, current_user=current_user)
 
 
-@app.route("/edit-post/<int:post_id>", methods=['POST'])
+@app.route("/edit-post/<int:post_id>", methods=['POST', 'GET'])
 def edit_post(post_id):
     post = BlogPost.query.get(post_id)
     edit_form = EditPostForm(
@@ -197,6 +197,7 @@ def delete_post(post_id):
         return redirect(url_for('get_all_posts'))
     else:
         return(f'You are not the appropriate user {current_user.name} and {post_to_delete.author_id}')
+        
 
 if __name__ == "__main__":
     app.run(debug=True)
