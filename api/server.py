@@ -196,7 +196,7 @@ def delete_post(post_id):
         db.session.commit()
         return redirect(url_for('get_all_posts'))
     else:
-        return('You are not the appropriate user')
+        return(f'You are not the appropriate user {current_user.name} and {post_to_delete.author_id}')
 
 if __name__ == "__main__":
     app.run(debug=True)
