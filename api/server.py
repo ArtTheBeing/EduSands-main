@@ -191,7 +191,7 @@ def edit_post(post_id):
 @app.route("/delete/<int:post_id>")
 def delete_post(post_id):
     post_to_delete = BlogPost.query.get(post_id)
-    if current_user.id == post_to_delete.author_id:
+    if current_user.name == post_to_delete.author_id:
         db.session.delete(post_to_delete)
         db.session.commit()
         return redirect(url_for('get_all_posts'))
@@ -200,6 +200,5 @@ def delete_post(post_id):
 
 if __name__ == "__main__":
     app.run(debug=True)
-    
     
     
