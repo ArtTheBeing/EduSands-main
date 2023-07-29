@@ -1,0 +1,17 @@
+{
+    "builds" : [
+        {
+            "src":"api/server.py",
+            "use":"@vercel/python"
+
+        }
+    ],
+    "routes" : [
+        {
+            "methods": ["POST", "GET", "DELETE", "PATCH"],
+            "src":"/(.*)",
+            "dest":"api/server.py"
+
+        }
+    ]
+}

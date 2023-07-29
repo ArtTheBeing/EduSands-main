@@ -1,0 +1,20 @@
+API (Flask): 
+1) GET request to get all the petitions from the database (name, description, upvotes)
+2) POST request to post any new petitions by users 
+3) GET request to get the current events
+
+Databases(SQL Lite, JSON file, CSV): 
+1) Store the petition information (name, description, upvotes) --> based on date
+----------------------------------------------------------------------------------------------------------
+To create petitions: 
+
+Users can add tags, names and chat gpt creates titles and descriptions based on the user input 
+new_event = {}
+new_event[title] = kndskfls
+new_event[desc] = description
+
+What Ive Learned
+Database Creation: Creating databases using SQLAlchemy and POSTGRES
+Database Architecture: Creating One-to-Many and Many-To-Many database relationships
+Backend API Creation: Creating an API that stores petitions and users
+AI Function Integration: Using ChatGPT's API, I created a function for automatically creating petitions
