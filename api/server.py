@@ -63,18 +63,32 @@ class LoginUser(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Register!')
 
+class CommentForm(FlaskForm):
+    body = TextAreaField('Comment', validators=[DataRequired()])
+    submit = SubmitField('Add Comment', validators=[DataRequired()])
+
 
 ##CONFIGURE TABLES
 
-class BlogPost(db.Model):
-    __tablename__ = "blog_posts"
+association_table = Table('association', db.Model.metadata,
+    Column('username', ForeignKey('users.id'), primary_key=True),
+    Column('post', ForeignKey('petition.id'), primary_key=True)
+)
+
+class Petition(db.Model):
+    __tablename__ = "petition"
     id = db.Column(db.Integer, primary_key=True)
     author = relationship('User', back_populates='posts')
-    title = db.Column(db.String(250), unique=True, nullable=False)
+    title = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
     upvotes = db.Column(db.Integer, nullable=False)
     author_id = db.Column(db.String, ForeignKey('users.name'))
+    liked_by_users = relationship('User', secondary=association_table, back_populates='liked_posts')
+    comments = relationship('Comments', back_populates='petition')
+
+    def to_dict(self):
+        return{c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class User(UserMixin, db.Model):
@@ -83,14 +97,28 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password=db.Column(db.String(200), nullable=False)
     name=db.Column(db.String(1000), nullable=False, unique=True)
-    posts = relationship('BlogPost', back_populates='author')
+    posts = relationship('Petition', back_populates='author')
+    liked_posts = relationship('Petition', secondary=association_table, back_populates='liked_by_users')
+    comments = relationship('Comments', back_populates='user')
+
+    def to_dict(self):
+        return{c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+class Comments(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.String, nullable=False)
+    author_id = db.Column(db.Integer, ForeignKey('users.name'))
+    user = relationship('User', back_populates='comments')
+    petition_id = db.Column(db.Integer, ForeignKey('petition.id'))
+    petition = relationship('Petition', back_populates='comments')
 
 with app.app_context():
      db.create_all()
 
 @app.route('/')
 def get_all_posts():
-    posts = BlogPost.query.all()
+    posts = Petition.query.all()
     return render_template("index.html", all_posts=posts, logged_in=current_user.is_authenticated)
 
 
@@ -136,10 +164,22 @@ def logout():
     return redirect(url_for('get_all_posts'))
 
 
-@app.route("/post/<int:post_id>")
+@app.route("/post/<int:post_id>", methods=['POST', 'GET'])
 def show_post(post_id):
-    requested_post = BlogPost.query.get(post_id)
-    return render_template("post.html", post=requested_post, logged_in=current_user.is_authenticated, current_user=current_user)
+    requested_petition = Petition.query.get(post_id)
+    form = CommentForm()
+    if form.validate_on_submit():
+        if not current_user.is_authenticated:
+            flash("You need to login or register to comment.")
+            return redirect(url_for("login"))
+        comment = Comments(
+            body=form.body.data,
+            petition=requested_petition,
+            user=current_user
+        )
+        db.session.add(comment)
+        db.session.commit()
+    return render_template("post.html", post=requested_petition, logged_in=current_user.is_authenticated, current_user=current_user, form=form)
 
 
 @app.route("/about")
@@ -158,7 +198,7 @@ def add_new_post():
         form = CreatePostForm()
         if form.validate_on_submit():
             d = DescriptionGeneration()
-            new_post = BlogPost(
+            new_post = Petition(
                 title=form.title.data,
                 body=d.desc(form.title.data),
                 author=current_user,
@@ -175,7 +215,7 @@ def add_new_post():
 
 @app.route("/edit-post/<int:post_id>", methods=['POST', 'GET'])
 def edit_post(post_id):
-    post = BlogPost.query.get(post_id)
+    post = Petition.query.get(post_id)
     edit_form = EditPostForm(
         title=post.title,
         body=post.body
@@ -190,7 +230,7 @@ def edit_post(post_id):
 
 @app.route("/delete/<int:post_id>")
 def delete_post(post_id):
-    post_to_delete = BlogPost.query.get(post_id)
+    post_to_delete = Petition.query.get(post_id)
     if current_user.name == post_to_delete.author_id:
         db.session.delete(post_to_delete)
         db.session.commit()
@@ -198,7 +238,14 @@ def delete_post(post_id):
     else:
         return(f'You are not the appropriate user {current_user.name} and {post_to_delete.author_id}')
         
-
+@app.route('/delete/comment/<int:comment_id>')
+def delete_comment(comment_id):
+    comment_to_delete = Comments.query.get(comment_id)
+    if current_user.name == comment_to_delete.author_id:
+        post_id = comment_to_delete.petition_id
+        db.session.delete(comment_to_delete)
+        db.session.commit()
+        return redirect(url_for('show_post', post_id=post_id))
 if __name__ == "__main__":
     app.run(debug=True)
     
