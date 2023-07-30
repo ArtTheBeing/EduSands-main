@@ -108,7 +108,7 @@ class Comments(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String, nullable=False)
-    author_id = db.Column(db.Integer, ForeignKey('users.name'))
+    author_id = db.Column(db.String, ForeignKey('users.name'))
     user = relationship('User', back_populates='comments')
     petition_id = db.Column(db.Integer, ForeignKey('petition.id'))
     petition = relationship('Petition', back_populates='comments')
